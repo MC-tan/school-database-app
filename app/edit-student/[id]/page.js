@@ -66,7 +66,7 @@ export default function EditStudent() {
     if (studentId) {
       fetchStudent()
     }
-  }, [studentId])
+  }, [studentId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ฟังก์ชันจัดการการเปลี่ยนแปลงข้อมูลในฟอร์ม
   const handleChange = (e) => {
@@ -206,7 +206,7 @@ export default function EditStudent() {
               />
               {formData.student_id !== originalStudentId && (
                 <p className="mt-1 text-sm text-amber-600">
-                  ⚠️ คุณกำลังเปลี่ยนรหัสนักเรียนจาก "{originalStudentId}" เป็น "{formData.student_id}"
+                  ⚠️ คุณกำลังเปลี่ยนรหัสนักเรียนจาก &quot;{originalStudentId}&quot; เป็น &quot;{formData.student_id}&quot;
                 </p>
               )}
             </div>

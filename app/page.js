@@ -69,7 +69,7 @@ export default function Home() {
   // เรียกใช้ฟังก์ชันกรองเมื่อมีการเปลี่ยนแปลงเงื่อนไข
   useEffect(() => {
     filterStudents()
-  }, [students, searchTerm, selectedGrade, selectedSection])
+  }, [students, searchTerm, selectedGrade, selectedSection]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ฟังก์ชันรีเซ็ตการค้นหา
   const resetFilters = () => {
