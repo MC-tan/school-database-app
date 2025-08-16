@@ -6,13 +6,12 @@ import { supabase } from '../lib/supabase'
 export default function AuthWrapper({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [showLogin, setShowLogin] = useState(true)
-  const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [isLogin, setIsLogin] = useState(true)
 
   // ตรวจสอบสถานะการล็อกอิน
   useEffect(() => {
@@ -27,6 +26,12 @@ export default function AuthWrapper({ children }) {
       (event, session) => {
         setUser(session?.user ?? null)
         setLoading(false)
+        
+        // ล้างข้อความ error และ success เมื่อมีการเปลี่ยนแปลงสถานะ
+        if (session?.user) {
+          setError('')
+          setSuccess('')
+        }
       }
     )
 
@@ -48,7 +53,9 @@ export default function AuthWrapper({ children }) {
       if (error) throw error
 
       setSuccess('เข้าสู่ระบบสำเร็จ!')
-      setShowLogin(false)
+      // ล้างฟอร์ม
+      setEmail('')
+      setPassword('')
     } catch (error) {
       setError(error.message)
     } finally {
@@ -93,14 +100,22 @@ export default function AuthWrapper({ children }) {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
-      setShowLogin(true)
+      
+      // ล้างข้อมูลฟอร์ม
+      setEmail('')
+      setPassword('')
+      setConfirmPassword('')
+      setError('')
+      setSuccess('')
+      setIsLogin(true)
     } catch (error) {
       console.error('Error logging out:', error)
+      setError('เกิดข้อผิดพลาดในการออกจากระบบ')
     }
   }
 
   // หน้าโหลด
-  if (loading && !showLogin) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -112,7 +127,7 @@ export default function AuthWrapper({ children }) {
   }
 
   // แสดงหน้าล็อกอินถ้ายังไม่ได้เข้าสู่ระบบ
-  if (!user || showLogin) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
