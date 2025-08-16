@@ -24,7 +24,7 @@ export default function Home() {
       
       // ดึงข้อมูลจากตาราง students
       const { data, error } = await supabase
-        .from('students')
+        .from('students_new')
         .select('*')
         .order('grade', { ascending: true })
 

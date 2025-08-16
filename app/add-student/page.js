@@ -141,7 +141,7 @@ export default function AddStudent() {
 
       // ตรวจสอบข้อมูลซ้ำ
       const { data: existingStudent } = await supabase
-        .from('students_new')
+        .from('students')
         .select('national_id, student_id')
         .or(`national_id.eq.${formData.national_id},student_id.eq.${formData.student_id}`)
         .single()
@@ -157,7 +157,7 @@ export default function AddStudent() {
 
       // บันทึกข้อมูลนักเรียน
       const { data: studentData, error: studentError } = await supabase
-        .from('students_new')
+        .from('students')
         .insert([formData])
         .select()
         .single()
