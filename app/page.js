@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { exportToExcel, exportFilteredData } from '../lib/exportUtils'
+import { formatAge, formatThaiDate } from '../lib/dateUtils'
 
 export default function Home() {
   // State สำหรับเก็บข้อมูลนักเรียน
@@ -24,7 +25,7 @@ export default function Home() {
       
       // ดึงข้อมูลจากตาราง students
       const { data, error } = await supabase
-        .from('students_new')
+        .from('students')
         .select('*')
         .order('grade', { ascending: true })
 
@@ -358,7 +359,10 @@ export default function Home() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      รหัสนักเรียน
+                      เลขประจำตัวประชาชน
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      รหัسนักเรียน
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ชื่อ-นามสกุล
@@ -378,10 +382,17 @@ export default function Home() {
                   {filteredStudents.map((student, index) => (
                     <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {student.national_id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {student.student_id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.first_name} {student.last_name}
+                        {student.title}{student.first_name} {student.last_name}
+                        <br />
+                        <span className="text-gray-600 text-xs">
+                          อายุ: {formatAge(student.birth_date)}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         ป.{student.grade}
