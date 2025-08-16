@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { exportToExcel, exportToPDF, exportFilteredData } from '../lib/exportUtils'
 
 export default function Home() {
   // State สำหรับเก็บข้อมูลนักเรียน
@@ -14,6 +15,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGrade, setSelectedGrade] = useState('')
   const [selectedSection, setSelectedSection] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   // ฟังก์ชันดึงข้อมูลจากฐานข้อมูล
   async function fetchStudents() {
@@ -37,6 +39,31 @@ export default function Home() {
       setError(error.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // ฟังก์ชันส่งออกข้อมูล
+  const handleExport = async (format) => {
+    setExporting(true)
+    
+    try {
+      const filters = {
+        searchTerm,
+        selectedGrade,
+        selectedSection
+      }
+      
+      const result = exportFilteredData(students, filters, format)
+      
+      if (result.success) {
+        alert(`ส่งออกข้อมูลเป็น ${format.toUpperCase()} สำเร็จ!\nไฟล์: ${result.filename}`)
+      } else {
+        alert(`เกิดข้อผิดพลาดในการส่งออก: ${result.error}`)
+      }
+    } catch (error) {
+      alert(`เกิดข้อผิดพลาด: ${error.message}`)
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -69,7 +96,7 @@ export default function Home() {
   // เรียกใช้ฟังก์ชันกรองเมื่อมีการเปลี่ยนแปลงเงื่อนไข
   useEffect(() => {
     filterStudents()
-  }, [students, searchTerm, selectedGrade, selectedSection]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [students, searchTerm, selectedGrade, selectedSection])
 
   // ฟังก์ชันรีเซ็ตการค้นหา
   const resetFilters = () => {
@@ -283,6 +310,24 @@ export default function Home() {
             </div>
           </div>
 
+          {/* ปุ่มส่งออกข้อมูล */}
+          <div className="mt-4 flex gap-2 justify-end">
+            <button
+              onClick={() => handleExport('excel')}
+              disabled={exporting || students.length === 0}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              {exporting ? '📊 กำลังส่งออก...' : '📊 Excel'}
+            </button>
+            <button
+              onClick={() => handleExport('pdf')}
+              disabled={exporting || students.length === 0}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              {exporting ? '📄 กำลังส่งออก...' : '📄 PDF'}
+            </button>
+          </div>
+
           {/* แสดงสถานะการกรอง */}
           {(searchTerm || selectedGrade || selectedSection) && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
@@ -294,6 +339,9 @@ export default function Home() {
                 <span className="ml-2 font-medium">
                   (พบ {filteredStudents.length} จาก {students.length} คน)
                 </span>
+              </div>
+              <div className="text-xs text-blue-600 mt-1">
+                💡 ปุ่มส่งออกจะส่งออกเฉพาะข้อมูลที่กรองแล้วเท่านั้น
               </div>
             </div>
           )}
