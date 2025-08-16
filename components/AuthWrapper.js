@@ -140,16 +140,32 @@ export default function AuthWrapper({ children }) {
             </div>
           )}
 
-          {/* แท็บเลือกเข้าสู่ระบบ */}
-          <div className="mb-6 text-center">
-            <h2 className="text-lg font-semibold text-gray-900">เข้าสู่ระบบ</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              สำหรับเจ้าหน้าที่และครูผู้สอน
-            </p>
+          {/* แท็บเลือกระหว่างล็อกอินและสมัครสมาชิก */}
+          <div className="flex mb-6 border-b">
+            <button
+              onClick={() => setIsLogin(true)}
+              className={`flex-1 py-2 text-center font-medium ${
+                isLogin 
+                  ? 'text-blue-600 border-b-2 border-blue-600' 
+                  : 'text-gray-500'
+              }`}
+            >
+              เข้าสู่ระบบ
+            </button>
+            <button
+              onClick={() => setIsLogin(false)}
+              className={`flex-1 py-2 text-center font-medium ${
+                !isLogin 
+                  ? 'text-blue-600 border-b-2 border-blue-600' 
+                  : 'text-gray-500'
+              }`}
+            >
+              สมัครสมาชิก
+            </button>
           </div>
 
-          {/* ฟอร์มล็อกอิน */}
-          <form onSubmit={handleLogin} className="space-y-4">
+          {/* ฟอร์มล็อกอิน/สมัครสมาชิก */}
+          <form onSubmit={isLogin ? handleLogin : handleSignUp} className="space-y-4">
             {/* อีเมล */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -183,7 +199,24 @@ export default function AuthWrapper({ children }) {
               />
             </div>
 
-            {/* ยืนยันรหัสผ่าน (ลบออก) */}
+            {/* ยืนยันรหัสผ่าน (สำหรับสมัครสมาชิก) */}
+            {!isLogin && (
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  ยืนยันรหัสผ่าน
+                </label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="ยืนยันรหัสผ่าน"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                  minLength={6}
+                />
+              </div>
+            )}
 
             {/* ปุ่มส่งข้อมูล */}
             <button
@@ -191,15 +224,20 @@ export default function AuthWrapper({ children }) {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white py-2 px-4 rounded-lg font-medium transition-colors"
             >
-              {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+              {loading 
+                ? 'กำลังประมวลผล...' 
+                : isLogin 
+                  ? 'เข้าสู่ระบบ' 
+                  : 'สมัครสมาชิก'
+              }
             </button>
           </form>
 
           {/* คำแนะนำ */}
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <p className="text-blue-800 text-sm">
-              <strong>🔐 สำหรับเจ้าหน้าที่:</strong><br/>
-              หากยังไม่มีบัญชี กรุณาติดต่อผู้ดูแลระบบเพื่อสร้างบัญชีให้
+              <strong>🔐 เพื่อความปลอดภัย:</strong><br/>
+              ใช้รหัสผ่านที่มีความแข็งแรง อย่างน้อย 6 ตัวอักษร
             </p>
           </div>
         </div>
