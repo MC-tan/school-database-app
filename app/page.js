@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { exportToExcel, exportToPDF, exportFilteredData } from '../lib/exportUtils'
+import { exportToExcel, exportFilteredData } from '../lib/exportUtils'
 
 export default function Home() {
   // State สำหรับเก็บข้อมูลนักเรียน
@@ -43,7 +43,7 @@ export default function Home() {
   }
 
   // ฟังก์ชันส่งออกข้อมูล
-  const handleExport = async (format) => {
+  const handleExport = async () => {
     setExporting(true)
     
     try {
@@ -53,10 +53,10 @@ export default function Home() {
         selectedSection
       }
       
-      const result = exportFilteredData(students, filters, format)
+      const result = exportFilteredData(students, filters)
       
       if (result.success) {
-        alert(`ส่งออกข้อมูลเป็น ${format.toUpperCase()} สำเร็จ!\nไฟล์: ${result.filename}`)
+        alert(`ส่งออกข้อมูลเป็น Excel สำเร็จ!\nไฟล์: ${result.filename}`)
       } else {
         alert(`เกิดข้อผิดพลาดในการส่งออก: ${result.error}`)
       }
@@ -313,18 +313,11 @@ export default function Home() {
           {/* ปุ่มส่งออกข้อมูล */}
           <div className="mt-4 flex gap-2 justify-end">
             <button
-              onClick={() => handleExport('excel')}
+              onClick={handleExport}
               disabled={exporting || students.length === 0}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+              className="bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
             >
-              {exporting ? '📊 กำลังส่งออก...' : '📊 Excel'}
-            </button>
-            <button
-              onClick={() => handleExport('pdf')}
-              disabled={exporting || students.length === 0}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-            >
-              {exporting ? '📄 กำลังส่งออก...' : '📄 PDF'}
+              {exporting ? '📊 กำลังส่งออก...' : '📊 ส่งออก Excel'}
             </button>
           </div>
 
