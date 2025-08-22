@@ -80,21 +80,33 @@ const handleSelectPhoto = (e) => {
 }
 
 const addSibling = (e) => {
-  e?.preventDefault(); // ป้องกัน form submission
+  e?.preventDefault()
   
   if (!newSibling.national_id || !newSibling.first_name || !newSibling.last_name || !newSibling.birth_date) {
-    alert('กรุณากรอกข้อมูลพี่น้องให้ครบถ้วน')
+    alert('กรุณากรอกข้อมูลพี่น้องให้ครบถ้วน: เลขบัตรประชาชน, ชื่อ, นามสกุล, และวันเกิด')
     return
   }
+  
+  // ตรวจเลขบัตรประชาชนพี่น้อง
   const nationalIdCheck = validateNationalId(newSibling.national_id)
   if (!nationalIdCheck.isValid) {
-    alert(nationalIdCheck.message)
+    alert(`เลขบัตรประชาชนพี่น้องไม่ถูกต้อง: ${nationalIdCheck.message}`)
     return
   }
-  if (siblings.some((s) => s.national_id === newSibling.national_id)) {
-    alert('เลขบัตรประชาชนของพี่น้องซ้ำกัน')
+  
+  // ตรวจซ้ำกับนักเรียน
+  if (newSibling.national_id === formData.national_id) {
+    alert('เลขบัตรประชาชนพี่น้องซ้ำกับเลขบัตรประชาชนนักเรียน')
     return
   }
+  
+  // ตรวจซ้ำกับพี่น้องคนอื่น
+  const existingSibling = siblings.find(s => s.national_id === newSibling.national_id)
+  if (existingSibling) {
+    alert(`เลขบัตรประชาชนนี้ซ้ำกับพี่น้องที่มีอยู่แล้ว: ${existingSibling.first_name} ${existingSibling.last_name}`)
+    return
+  }
+  
   setSiblings([...siblings, { ...newSibling, id: Date.now() }])
   setNewSibling({ national_id: '', first_name: '', last_name: '', birth_date: '', education_level: '' })
 }
@@ -112,109 +124,143 @@ const emptyToNull = (obj) => {
   return out
 }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  setLoading(true)
+  setError(null)
 
-    try {
-      // (1) บังคับเฉพาะ 4 ช่อง: เลขบัตร, ชื่อ, สกุล, ชั้นเรียน
-      if (!formData.national_id || !formData.first_name || !formData.last_name || !formData.grade) {
-        throw new Error('กรุณากรอก เลขบัตรประชาชน, ชื่อ, นามสกุล และชั้นเรียน')
-      }
-
-      // ตรวจเลขบัตรประชาชนเฉพาะของนักเรียน
-      const nationalIdCheck = validateNationalId(formData.national_id)
-      if (!nationalIdCheck.isValid) {
-        throw new Error(nationalIdCheck.message)
-      }
-
-      // (2) ช่องอื่นๆ ไม่บังคับ — ถ้ากรอกเบอร์ จะตรวจรูปแบบให้
-      if (formData.father_phone) {
-        const phoneCheck = validatePhoneNumber(formData.father_phone)
-        if (!phoneCheck.isValid) throw new Error('เบอร์โทรบิดา: ' + phoneCheck.message)
-      }
-      if (formData.mother_phone) {
-        const phoneCheck = validatePhoneNumber(formData.mother_phone)
-        if (!phoneCheck.isValid) throw new Error('เบอร์โทรมารดา: ' + phoneCheck.message)
-      }
-
-      // ตรวจข้อมูลซ้ำเฉพาะ national_id (student_id ไม่บังคับ/ไม่ตรวจซ้ำ)
-      const { data: existingByNid } = await supabase
-        .from('students')
-        .select('national_id')
-        .eq('national_id', formData.national_id)
-        .maybeSingle()
-
-      if (existingByNid) {
-        throw new Error('เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว')
-      }
-
-      // (3) อัปโหลดรูป (ถ้ามีไฟล์)
-      let photoUrl = null
-      if (photoFile) {
-        // ต้องมี bucket ชื่อ 'students' และโฟลเดอร์ photos/
-        const fileExt = photoFile.name.split('.').pop()
-        const fileName = `${formData.national_id || Date.now()}.${fileExt}`
-        const filePath = `photos/${fileName}`
-
-        const { error: upErr } = await supabase.storage.from('students').upload(filePath, photoFile, {
-          cacheControl: '3600',
-          upsert: true
-        })
-        if (upErr) throw upErr
-
-        const { data: pub } = supabase.storage.from('students').getPublicUrl(filePath)
-        photoUrl = pub?.publicUrl || null
-      }
-
-      // เตรียม payload (แปลง '' -> null) และใส่ photo_url ถ้ามี
-      const payload = emptyToNull({ ...formData, photo_url: photoUrl || formData.photo_url || null })
-
-      // บันทึกข้อมูลนักเรียน
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .insert([payload])
-        .select()
-        .single()
-      if (studentError) throw studentError
-
-      // บันทึกข้อมูลพี่น้อง (ถ้ามี)
-      if (siblings.length > 0) {
-        const siblingsData = siblings.map((s) => ({
-          student_id: studentData.id,
-          national_id: s.national_id,
-          first_name: s.first_name,
-          last_name: s.last_name,
-          birth_date: s.birth_date || null,
-          education_level: s.education_level || null
-        }))
-        const { error: siblingsError } = await supabase.from('siblings').insert(siblingsData)
-        if (siblingsError) throw siblingsError
-      }
-
-      setSuccess(true)
-      // reset ฟอร์ม
-      setFormData({
-        national_id: '', student_id: '', title: 'เด็กชาย', first_name: '', last_name: '',
-        birth_date: '', address: '', grade: 4, section: '',
-        father_first_name: '', father_last_name: '', father_national_id: '',
-        father_birth_date: '', father_address: '', father_phone: '',
-        mother_first_name: '', mother_last_name: '', mother_national_id: '',
-        mother_birth_date: '', mother_address: '', mother_phone: '',
-        photo_url: ''
-      })
-      setPhotoFile(null)
-      setSiblings([])
-      setCurrentTab('basic')
-      setTimeout(() => setSuccess(false), 5000)
-    } catch (err) {
-      console.error('Error adding student:', err)
-      setError(err.message || 'ไม่สามารถบันทึกข้อมูลได้')
-    } finally {
-      setLoading(false)
+  try {
+    // (1) บังคับเฉพาะ 4 ช่อง: เลขบัตร, ชื่อ, สกุล, ชั้นเรียน
+    if (!formData.national_id || !formData.first_name || !formData.last_name || !formData.grade) {
+      throw new Error('กรุณากรอก เลขบัตรประชาชน, ชื่อ, นามสกุล และชั้นเรียน')
     }
+
+    // ตรวจเลขบัตรประชาชนเฉพาะของนักเรียน - เพิ่มความชัดเจน
+    const nationalIdCheck = validateNationalId(formData.national_id)
+    if (!nationalIdCheck.isValid) {
+      throw new Error(`เลขบัตรประชาชนนักเรียนไม่ถูกต้อง: ${nationalIdCheck.message}`)
+    }
+
+    // ตรวจเลขบัตรประชาชนบิดา (ถ้ากรอก)
+    if (formData.father_national_id) {
+      const fatherIdCheck = validateNationalId(formData.father_national_id)
+      if (!fatherIdCheck.isValid) {
+        throw new Error(`เลขบัตรประชาชนบิดาไม่ถูกต้อง: ${fatherIdCheck.message}`)
+      }
+    }
+
+    // ตรวจเลขบัตรประชาชนมารดา (ถ้ากรอก)
+    if (formData.mother_national_id) {
+      const motherIdCheck = validateNationalId(formData.mother_national_id)
+      if (!motherIdCheck.isValid) {
+        throw new Error(`เลขบัตรประชาชนมารดาไม่ถูกต้อง: ${motherIdCheck.message}`)
+      }
+    }
+
+    // (2) ช่องอื่นๆ ไม่บังคับ — ถ้ากรอกเบอร์ จะตรวจรูปแบบให้
+    if (formData.father_phone) {
+      const phoneCheck = validatePhoneNumber(formData.father_phone)
+      if (!phoneCheck.isValid) throw new Error(`เบอร์โทรศัพท์บิดาไม่ถูกต้อง: ${phoneCheck.message}`)
+    }
+    if (formData.mother_phone) {
+      const phoneCheck = validatePhoneNumber(formData.mother_phone)
+      if (!phoneCheck.isValid) throw new Error(`เบอร์โทรศัพท์มารดาไม่ถูกต้อง: ${phoneCheck.message}`)
+    }
+
+    // ตรวจข้อมูลซ้ำเฉพาะ national_id (student_id ไม่บังคับ/ไม่ตรวจซ้ำ)
+    const { data: existingByNid } = await supabase
+      .from('students')
+      .select('national_id')
+      .eq('national_id', formData.national_id)
+      .maybeSingle()
+
+    if (existingByNid) {
+      throw new Error('เลขบัตรประชาชนนักเรียนนี้มีอยู่ในระบบแล้ว')
+    }
+
+    // ตรวจสอบเลขบัตรประชาชนพี่น้องซ้ำกับนักเรียนหรือกันเอง
+    for (let i = 0; i < siblings.length; i++) {
+      const sibling = siblings[i]
+      
+      // ตรวจเลขบัตรพี่น้องซ้ำกับนักเรียน
+      if (sibling.national_id === formData.national_id) {
+        throw new Error(`เลขบัตรประชาชนพี่น้องคนที่ ${i + 1} (${sibling.first_name} ${sibling.last_name}) ซ้ำกับเลขบัตรประชาชนนักเรียน`)
+      }
+
+      // ตรวจเลขบัตรพี่น้องซ้ำกันเอง
+      for (let j = i + 1; j < siblings.length; j++) {
+        if (siblings[j].national_id === sibling.national_id) {
+          throw new Error(`เลขบัตรประชาชนพี่น้องคนที่ ${i + 1} และคนที่ ${j + 1} ซ้ำกัน`)
+        }
+      }
+    }
+
+    // (3) อัปโหลดรูป (ถ้ามีไฟล์)
+    let photoUrl = null
+    if (photoFile) {
+      // ต้องมี bucket ชื่อ 'students' และโฟลเดอร์ photos/
+      const fileExt = photoFile.name.split('.').pop()
+      const fileName = `${formData.national_id || Date.now()}.${fileExt}`
+      const filePath = `photos/${fileName}`
+
+      const { error: upErr } = await supabase.storage.from('students').upload(filePath, photoFile, {
+        cacheControl: '3600',
+        upsert: true
+      })
+      if (upErr) throw upErr
+
+      const { data: pub } = supabase.storage.from('students').getPublicUrl(filePath)
+      photoUrl = pub?.publicUrl || null
+    }
+
+    // เตรียม payload (แปลง '' -> null) และใส่ photo_url ถ้ามี
+    const payload = emptyToNull({ ...formData, photo_url: photoUrl || formData.photo_url || null })
+
+    // บันทึกข้อมูลนักเรียน
+    const { data: studentData, error: studentError } = await supabase
+      .from('students')
+      .insert([payload])
+      .select()
+      .single()
+    if (studentError) throw studentError
+
+    // บันทึกข้อมูลพี่น้อง (ถ้ามี)
+    if (siblings.length > 0) {
+      const siblingsData = siblings.map((s) => ({
+        student_id: studentData.id,
+        national_id: s.national_id,
+        first_name: s.first_name,
+        last_name: s.last_name,
+        birth_date: s.birth_date || null,
+        education_level: s.education_level || null
+      }))
+      const { error: siblingsError } = await supabase.from('siblings').insert(siblingsData)
+      if (siblingsError) throw siblingsError
+    }
+
+    setSuccess(true)
+    // reset ฟอร์ม
+    setFormData({
+      national_id: '', student_id: '', title: 'เด็กชาย', first_name: '', last_name: '',
+      birth_date: '', address: '', grade: 4, section: '',
+      father_first_name: '', father_last_name: '', father_national_id: '',
+      father_birth_date: '', father_address: '', father_phone: '',
+      mother_first_name: '', mother_last_name: '', mother_national_id: '',
+      mother_birth_date: '', mother_address: '', mother_phone: '',
+      photo_url: ''
+    })
+    setPhotoFile(null)
+    setSiblings([])
+    setCurrentTab('basic')
+    setTimeout(() => setSuccess(false), 5000)
+
+  } catch (err) {
+    console.error('Error adding student:', err)
+    setError(err.message || 'ไม่สามารถบันทึกข้อมูลได้')
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
