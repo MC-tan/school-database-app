@@ -117,7 +117,7 @@ export default function StudentDetail({ params }) {
               </p>
             </div>
             <a
-              href={`/add-student?mode=edit`}
+              href="/add-student?mode=edit"
               className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
             >
               ✏️ แก้ไขข้อมูล
@@ -403,7 +403,7 @@ export default function StudentDetail({ params }) {
           </button>
           
           <a
-            href={`/add-student?mode=edit`}
+            href="/add-student?mode=edit"
             className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
           >
             ✏️ แก้ไขข้อมูล
