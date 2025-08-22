@@ -60,55 +60,57 @@ export default function AddStudent() {
   const [currentTab, setCurrentTab] = useState('basic') // basic, father, mother, siblings
 
   // === handlers ===
-  const handleChange = (e) => {
-    const { name, value, type } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'number' ? (value === '' ? '' : parseInt(value)) : value
-    }))
-  }
+ const handleChange = (e) => {
+  const { name, value, type } = e.target
+  setFormData((prev) => ({
+    ...prev,
+    [name]: type === 'number' ? (value === '' ? '' : parseInt(value)) : value
+  }))
+}
 
-  const handleSelectPhoto = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 5 * 1024 * 1024) {
-      alert('ไฟล์รูปขนาดเกิน 5MB')
-      e.target.value = ''
-      return
-    }
-    setPhotoFile(file)
+const handleSelectPhoto = (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) {
+    alert('ไฟล์รูปขนาดเกิน 5MB')
+    e.target.value = ''
+    return
   }
+  setPhotoFile(file)
+}
 
-  const addSibling = () => {
-    if (!newSibling.national_id || !newSibling.first_name || !newSibling.last_name || !newSibling.birth_date) {
-      alert('กรุณากรอกข้อมูลพี่น้องให้ครบถ้วน')
-      return
-    }
-    const nationalIdCheck = validateNationalId(newSibling.national_id)
-    if (!nationalIdCheck.isValid) {
-      alert(nationalIdCheck.message)
-      return
-    }
-    if (siblings.some((s) => s.national_id === newSibling.national_id)) {
-      alert('เลขบัตรประชาชนของพี่น้องซ้ำกัน')
-      return
-    }
-    setSiblings([...siblings, { ...newSibling, id: Date.now() }])
-    setNewSibling({ national_id: '', first_name: '', last_name: '', birth_date: '', education_level: '' })
+const addSibling = (e) => {
+  e?.preventDefault(); // ป้องกัน form submission
+  
+  if (!newSibling.national_id || !newSibling.first_name || !newSibling.last_name || !newSibling.birth_date) {
+    alert('กรุณากรอกข้อมูลพี่น้องให้ครบถ้วน')
+    return
   }
+  const nationalIdCheck = validateNationalId(newSibling.national_id)
+  if (!nationalIdCheck.isValid) {
+    alert(nationalIdCheck.message)
+    return
+  }
+  if (siblings.some((s) => s.national_id === newSibling.national_id)) {
+    alert('เลขบัตรประชาชนของพี่น้องซ้ำกัน')
+    return
+  }
+  setSiblings([...siblings, { ...newSibling, id: Date.now() }])
+  setNewSibling({ national_id: '', first_name: '', last_name: '', birth_date: '', education_level: '' })
+}
 
-  const removeSibling = (id) => {
-    setSiblings(siblings.filter((s) => s.id !== id))
-  }
+const removeSibling = (id) => {
+  setSiblings(siblings.filter((s) => s.id !== id))
+}
 
-  // helper: แปลงค่าว่างเป็น null (กัน constraint / ทำให้ข้อมูลสะอาด)
-  const emptyToNull = (obj) => {
-    const out = {}
-    for (const [k, v] of Object.entries(obj)) {
-      out[k] = v === '' ? null : v
-    }
-    return out
+// helper: แปลงค่าว่างเป็น null (กัน constraint / ทำให้ข้อมูลสะอาด)
+const emptyToNull = (obj) => {
+  const out = {}
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = v === '' ? null : v
   }
+  return out
+}
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -547,9 +549,11 @@ export default function AddStudent() {
                         placeholder="เช่น ป.6, ม.3, ปริญญาตรี" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                     </div>
                     <div className="flex items-end">
-                      <button type="button" onClick={addSibling}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                        เพิ่มพี่น้อง
+                      <button 
+                        type="button" 
+                        onClick={addSibling}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                      >เพิ่มพี่น้อง
                       </button>
                     </div>
                   </div>
@@ -581,7 +585,13 @@ export default function AddStudent() {
                               </td>
                               <td className="px-4 py-4 text-sm text-gray-900">{s.education_level || '-'}</td>
                               <td className="px-4 py-4">
-                                <button type="button" onClick={() => removeSibling(s.id)} className="text-red-600 hover:text-red-800 text-sm font-medium">ลบ</button>
+                               <button 
+                                  type="button" 
+                                  onClick={() => removeSibling(s.id)} 
+                                  className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                >
+                                  ลบ
+                                </button>
                               </td>
                             </tr>
                           ))}
