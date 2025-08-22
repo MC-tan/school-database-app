@@ -77,7 +77,7 @@ export default function Home() {
       filtered = filtered.filter(student =>
         student.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.student_id.toLowerCase().includes(searchTerm.toLowerCase())
+        (student.student_id && student.student_id.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     }
 
@@ -113,7 +113,7 @@ export default function Home() {
   }
 
   const getUniqueSections = () => {
-    const sections = students.map(s => s.section)
+    const sections = students.map(s => s.section).filter(s => s) // กรองค่าว่างออก
     return [...new Set(sections)].sort()
   }
 
@@ -362,7 +362,7 @@ export default function Home() {
                       เลขประจำตัวประชาชน
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      รหัسนักเรียน
+                      รหัสนักเรียน
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ชื่อ-นามสกุล
@@ -385,7 +385,7 @@ export default function Home() {
                         {student.national_id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {student.student_id}
+                        {student.student_id || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {student.title}{student.first_name} {student.last_name}
@@ -398,21 +398,21 @@ export default function Home() {
                         ป.{student.grade}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.section}
+                        {student.section || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex gap-2">
                           <a
-                            href={`/edit-student/${student.id}`}
+                            href={`/student/${student.id}`}
                             className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-xs font-medium transition-colors"
                           >
-                            แก้ไข
+                            📄 ดูข้อมูล
                           </a>
                           <button
                             onClick={() => handleDeleteStudent(student.id, student.first_name, student.last_name)}
                             className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-xs font-medium transition-colors"
                           >
-                            ลบ
+                            🗑️ ลบ
                           </button>
                         </div>
                       </td>
