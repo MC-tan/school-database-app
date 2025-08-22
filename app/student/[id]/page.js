@@ -3,7 +3,22 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
-import { formatAge, formatThaiDate } from '../../../lib/dateUtils'
+import { formatAge } from '../../../lib/dateUtils'
+
+// ฟังก์ชัน formatThaiDate (เผื่อยังไม่มีใน dateUtils)
+const formatThaiDate = (date) => {
+  if (!date) return '-'
+  
+  try {
+    return new Date(date).toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  } catch {
+    return date
+  }
+}
 
 export default function StudentDetail({ params }) {
   const router = useRouter()
@@ -14,7 +29,6 @@ export default function StudentDetail({ params }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // โหลดข้อมูลนักเรียนและพี่น้อง
   useEffect(() => {
     if (studentId) {
       loadStudentData()
@@ -25,7 +39,6 @@ export default function StudentDetail({ params }) {
     try {
       setLoading(true)
 
-      // โหลดข้อมูลนักเรียน
       const { data: studentData, error: studentError } = await supabase
         .from('students')
         .select('*')
@@ -41,18 +54,13 @@ export default function StudentDetail({ params }) {
 
       setStudent(studentData)
 
-      // โหลดข้อมูลพี่น้อง
-      const { data: siblingsData, error: siblingsError } = await supabase
+      const { data: siblingsData } = await supabase
         .from('siblings')
         .select('*')
         .eq('student_id', studentId)
         .order('birth_date', { ascending: false })
 
-      if (siblingsError) {
-        console.error('Error loading siblings:', siblingsError)
-      } else {
-        setSiblings(siblingsData || [])
-      }
+      setSiblings(siblingsData || [])
 
     } catch (err) {
       console.error('Error loading student data:', err)
@@ -62,7 +70,6 @@ export default function StudentDetail({ params }) {
     }
   }
 
-  // แสดง loading
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
@@ -76,7 +83,6 @@ export default function StudentDetail({ params }) {
     )
   }
 
-  // แสดง error
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
@@ -135,14 +141,39 @@ export default function StudentDetail({ params }) {
               {/* รูปภาพ */}
               <div className="flex justify-center">
                 {student?.photo_url ? (
-                  <img
-                    src={student.photo_url}
-                    alt={`รูป${student.first_name}`}
-                    className="w-40 h-40 object-cover rounded-lg border-2 border-gray-200"
-                  />
+                  <div className="text-center">
+                    <img
+                      src={student.photo_url}
+                      alt={`รูป${student.first_name}`}
+                      className="w-40 h-40 object-cover rounded-lg border-2 border-gray-200 shadow-md"
+                      onError={(e) => {
+                        console.error('Error loading image:', student.photo_url)
+                        e.target.style.display = 'none'
+                        e.target.nextSibling.style.display = 'flex'
+                      }}
+                    />
+                    <div 
+                      className="w-40 h-40 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center" 
+                      style={{display: 'none'}}
+                    >
+                      <div className="text-center">
+                        <span className="text-gray-400 text-sm block">ไม่สามารถโหลดรูปได้</span>
+                        <span className="text-xs text-gray-300">URL อาจมีปัญหา</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2 break-all">
+                      {student.photo_url.length > 50 ? 
+                        `${student.photo_url.substring(0, 50)}...` : 
+                        student.photo_url
+                      }
+                    </p>
+                  </div>
                 ) : (
                   <div className="w-40 h-40 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center">
-                    <span className="text-gray-400 text-sm">ไม่มีรูปภาพ</span>
+                    <div className="text-center">
+                      <span className="text-gray-400 text-sm">ไม่มีรูปภาพ</span>
+                      <span className="text-xs text-gray-300 block mt-1">photo_url เป็น null</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -175,25 +206,20 @@ export default function StudentDetail({ params }) {
                 </div>
                 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700">ชั้นเรียน/ห้อง</label>
+                  <p className="mt-1 text-sm text-gray-900">ป.{student?.grade} {student?.section && `/ ${student.section}`}</p>
+                </div>
+                
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700">วันเดือนปีเกิด</label>
                   <p className="mt-1 text-sm text-gray-900">
-                    {student?.birth_date ? formatThaiDate(student.birth_date) : '-'}
+                    {formatThaiDate(student?.birth_date)}
                     {student?.birth_date && (
                       <span className="block text-xs text-gray-600">
                         อายุ: {formatAge(student.birth_date)}
                       </span>
                     )}
                   </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">ชั้นเรียน</label>
-                  <p className="mt-1 text-sm text-gray-900 font-medium">ป.{student?.grade}</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">ห้อง</label>
-                  <p className="mt-1 text-sm text-gray-900">{student?.section || '-'}</p>
                 </div>
               </div>
             </div>
@@ -231,7 +257,7 @@ export default function StudentDetail({ params }) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">วันเดือนปีเกิด</label>
                   <p className="mt-1 text-sm text-gray-900">
-                    {student?.father_birth_date ? formatThaiDate(student.father_birth_date) : '-'}
+                    {formatThaiDate(student?.father_birth_date)}
                     {student?.father_birth_date && (
                       <span className="block text-xs text-gray-600">
                         อายุ: {formatAge(student.father_birth_date)}
@@ -281,7 +307,7 @@ export default function StudentDetail({ params }) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">วันเดือนปีเกิด</label>
                   <p className="mt-1 text-sm text-gray-900">
-                    {student?.mother_birth_date ? formatThaiDate(student.mother_birth_date) : '-'}
+                    {formatThaiDate(student?.mother_birth_date)}
                     {student?.mother_birth_date && (
                       <span className="block text-xs text-gray-600">
                         อายุ: {formatAge(student.mother_birth_date)}
@@ -345,7 +371,7 @@ export default function StudentDetail({ params }) {
                           {sibling.first_name} {sibling.last_name}
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {sibling.birth_date ? formatThaiDate(sibling.birth_date) : '-'}
+                          {formatThaiDate(sibling.birth_date)}
                           {sibling.birth_date && (
                             <>
                               <br />
@@ -379,14 +405,14 @@ export default function StudentDetail({ params }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700">วันที่สร้างข้อมูล</label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {student?.created_at ? formatThaiDate(student.created_at) : '-'}
+                  {formatThaiDate(student?.created_at)}
                 </p>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700">วันที่แก้ไขล่าสุด</label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {student?.updated_at ? formatThaiDate(student.updated_at) : '-'}
+                  {formatThaiDate(student?.updated_at)}
                 </p>
               </div>
             </div>
