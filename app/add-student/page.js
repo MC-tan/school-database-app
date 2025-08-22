@@ -18,7 +18,7 @@ export default function AddStudent() {
     last_name: '',
     birth_date: '',           // ไม่บังคับ
     address: '',              // ไม่บังคับ
-    grade: 4,
+    grade: 4,                 // บังคับ (ค่าเริ่มต้น ป.4)
     section: '',              // ไม่บังคับ
 
     // ผู้ปกครอง (ไม่บังคับ)
@@ -42,9 +42,9 @@ export default function AddStudent() {
 
   // อัปโหลดรูป
   const [photoFile, setPhotoFile] = useState(null)
-  const photoPreview = useMemo(() => photoFile ? URL.createObjectURL(photoFile) : null, [photoFile])
+  const photoPreview = useMemo(() => (photoFile ? URL.createObjectURL(photoFile) : null), [photoFile])
 
-  // พี่น้อง
+  // พี่น้อง (ไม่บังคับ)
   const [siblings, setSiblings] = useState([])
   const [newSibling, setNewSibling] = useState({
     national_id: '',
@@ -62,16 +62,15 @@ export default function AddStudent() {
   // === handlers ===
   const handleChange = (e) => {
     const { name, value, type } = e.target
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'number' ? parseInt(value) : value
+      [name]: type === 'number' ? (value === '' ? '' : parseInt(value)) : value
     }))
   }
 
   const handleSelectPhoto = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    // กันไฟล์ใหญ่เกิน ~5MB (ปรับได้)
     if (file.size > 5 * 1024 * 1024) {
       alert('ไฟล์รูปขนาดเกิน 5MB')
       e.target.value = ''
@@ -90,7 +89,7 @@ export default function AddStudent() {
       alert(nationalIdCheck.message)
       return
     }
-    if (siblings.some(s => s.national_id === newSibling.national_id)) {
+    if (siblings.some((s) => s.national_id === newSibling.national_id)) {
       alert('เลขบัตรประชาชนของพี่น้องซ้ำกัน')
       return
     }
@@ -99,14 +98,14 @@ export default function AddStudent() {
   }
 
   const removeSibling = (id) => {
-    setSiblings(siblings.filter(s => s.id !== id))
+    setSiblings(siblings.filter((s) => s.id !== id))
   }
 
-  // helper: แปลงค่าว่างเป็น null (กัน constraint NOT NULL/unique ผิดพลาด)
+  // helper: แปลงค่าว่างเป็น null (กัน constraint / ทำให้ข้อมูลสะอาด)
   const emptyToNull = (obj) => {
     const out = {}
     for (const [k, v] of Object.entries(obj)) {
-      out[k] = (v === '' || v === undefined) ? null : v
+      out[k] = v === '' ? null : v
     }
     return out
   }
@@ -138,7 +137,7 @@ export default function AddStudent() {
         if (!phoneCheck.isValid) throw new Error('เบอร์โทรมารดา: ' + phoneCheck.message)
       }
 
-      // ตรวจข้อมูลซ้ำเฉพาะ national_id (student_id ไม่บังคับ/ไม่ตรวจซ้ำแล้ว)
+      // ตรวจข้อมูลซ้ำเฉพาะ national_id (student_id ไม่บังคับ/ไม่ตรวจซ้ำ)
       const { data: existingByNid } = await supabase
         .from('students')
         .select('national_id')
@@ -152,7 +151,7 @@ export default function AddStudent() {
       // (3) อัปโหลดรูป (ถ้ามีไฟล์)
       let photoUrl = null
       if (photoFile) {
-        // ต้องมี bucket ชื่อ 'students' และตั้ง public read (หรือใช้ getPublicUrl)
+        // ต้องมี bucket ชื่อ 'students' และโฟลเดอร์ photos/
         const fileExt = photoFile.name.split('.').pop()
         const fileName = `${formData.national_id || Date.now()}.${fileExt}`
         const filePath = `photos/${fileName}`
@@ -180,7 +179,7 @@ export default function AddStudent() {
 
       // บันทึกข้อมูลพี่น้อง (ถ้ามี)
       if (siblings.length > 0) {
-        const siblingsData = siblings.map(s => ({
+        const siblingsData = siblings.map((s) => ({
           student_id: studentData.id,
           national_id: s.national_id,
           first_name: s.first_name,
@@ -220,7 +219,7 @@ export default function AddStudent() {
       <div className="max-w-4xl mx-auto">
         {/* กลับ & หัวข้อ */}
         <div className="mb-8">
-          <button onClick={() => router.push('/')} className="mb-4 text-blue-600 hover:text-blue-800 font-medium">
+          <button type="button" onClick={() => router.push('/')} className="mb-4 text-blue-600 hover:text-blue-800 font-medium">
             ← กลับหน้าหลัก
           </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">เพิ่มข้อมูลนักเรียนใหม่</h1>
@@ -251,6 +250,7 @@ export default function AddStudent() {
               ].map((tab) => (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => setCurrentTab(tab.id)}
                   className={`px-6 py-4 text-sm font-medium border-b-2 ${
                     currentTab === tab.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -319,7 +319,7 @@ export default function AddStudent() {
                     <input
                       type="text"
                       name="student_id"
-                      value={formData.student_id}
+                      value={formData.student_id || ''}
                       onChange={handleChange}
                       placeholder="001"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -331,7 +331,7 @@ export default function AddStudent() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">คำนำหน้า</label>
                     <select
                       name="title"
-                      value={formData.title}
+                      value={formData.title || ''}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
@@ -380,9 +380,7 @@ export default function AddStudent() {
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    {formData.birth_date && (
-                      <p className="mt-1 text-sm text-gray-600">อายุ: {formatAge(formData.birth_date)}</p>
-                    )}
+                    {formData.birth_date && <p className="mt-1 text-sm text-gray-600">อายุ: {formatAge(formData.birth_date)}</p>}
                   </div>
 
                   {/* ชั้นเรียน (required) */}
@@ -599,7 +597,7 @@ export default function AddStudent() {
             <div className="mt-8 flex gap-4">
               {currentTab !== 'basic' && (
                 <button
-                  type="button"
+                  type="button" // ❗ ป้องกัน submit อัตโนมัติ
                   onClick={() => {
                     const tabs = ['basic', 'father', 'mother', 'siblings']
                     const currentIndex = tabs.indexOf(currentTab)
@@ -613,7 +611,7 @@ export default function AddStudent() {
 
               {currentTab !== 'siblings' ? (
                 <button
-                  type="button"
+                  type="button" // ❗ ป้องกัน submit อัตโนมัติ
                   onClick={() => {
                     const tabs = ['basic', 'father', 'mother', 'siblings']
                     const currentIndex = tabs.indexOf(currentTab)
@@ -625,7 +623,7 @@ export default function AddStudent() {
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  type="submit" // ✅ ให้ submit เฉพาะปุ่มนี้
                   disabled={loading}
                   className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg font-medium transition-colors"
                 >
@@ -634,7 +632,7 @@ export default function AddStudent() {
               )}
 
               <button
-                type="button"
+                type="button" // ❗ ป้องกัน submit อัตโนมัติ
                 onClick={() => router.push('/')}
                 className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               >
